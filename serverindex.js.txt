@@ -1,0 +1,23 @@
+import React, { useState } from 'react';
+import Chat from './Chat';
+
+
+export default function App() {
+const [userType, setUserType] = useState('student');
+
+
+return (
+<div className="app">
+<header>
+<h1>Legal Document Analyzer — Financial Chat</h1>
+<label>
+<input type="radio" checked={userType==='student'} onChange={()=>setUserType('student')} /> Student
+</label>
+<label>
+<input type="radio" checked={userType==='professional'} onChange={()=>setUserType('professional')} /> Professional
+</label>
+</header>
+<Chat userType={userType} />
+</div>
+);
+}

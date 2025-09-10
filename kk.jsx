@@ -1,0 +1,40 @@
+// server/index.js
+const express = require('express');
+const bodyParser = require('body-parser');
+const ibm = require('./lib/ibmClient');
+require('dotenv').config();
+
+
+const app = express();
+app.use(bodyParser.json());
+
+
+// Chat with Watson Assistant (session-based)
+app.post('/api/chat', async (req, res) => {
+try {
+const { message, sessionId } = req.body;
+const response = await ibm.sendToAssistant({ message, sessionId });
+res.json(response);
+} catch (err) {
+console.error(err);
+res.status(500).json({ error: err.message });
+}
+});
+
+
+// Generate budget summary / suggestions with watsonx generation
+app.post('/api/generate', async (req, res) => {
+try {
+const { prompt, userType } = req.body; // userType: 'student'|'professional'
+const gen = await ibm.generateText({ prompt, userType });
+res.json(gen);
+} catch (err) {
+console.error(err);
+res.status(500).json({ error: err.message });
+}
+});
+
+
+app.listen(process.env.PORT || 4000, () => {
+console.log('Server running on port', process.env.PORT || 4000);
+});

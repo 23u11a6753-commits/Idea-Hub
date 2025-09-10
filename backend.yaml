@@ -1,0 +1,14 @@
+# make server folder
+mkdir server && cd server
+
+# initialize node project
+npm init -y
+
+# install dependencies
+npm install express body-parser node-fetch ibm-watson dotenv
+
+# install dev helper
+npm install --save-dev nodemon
+
+# go back to root
+cd ..
