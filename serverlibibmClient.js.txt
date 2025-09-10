@@ -1,0 +1,69 @@
+// server/lib/ibmClient.js
+authenticator: new IamAuthenticator({ apikey: process.env.IBM_API_KEY }),
+serviceUrl: process.env.IBM_ASSISTANT_URL,
+});
+
+
+// watsonx generation via REST (or use official SDK if available)
+async function generateText({ prompt, userType }) {
+// tone adaptation: include a short instruction to vary tone
+const toneInstruction = userType === 'student'
+? 'Use a casual, simple tone and keep explanations short. Provide actionable budgeting tips for students.'
+: 'Use a formal, concise tone suitable for working professionals. Provide detailed rationale and savings/investment options.';
+
+
+const body = {
+input: `${toneInstruction}\n\n${prompt}`,
+// model and other params depend on your watsonx instance; keep conservative defaults
+// If using REST endpoint, the exact JSON shape may differ — check your watsonx.ai docs.
+};
+
+
+const resp = await fetch(process.env.WATSONX_API_URL + '/v1/generate', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': `Bearer ${await getIamToken()}`,
+},
+body: JSON.stringify(body),
+});
+if (!resp.ok) throw new Error('watsonx generate failed: ' + resp.statusText);
+const j = await resp.json();
+// return text result — adjust path according to the service response
+return j;
+}
+
+
+async function getIamToken() {
+// exchange API key for IAM token
+const apiKey = process.env.IBM_API_KEY;
+const iamUrl = 'https://iam.cloud.ibm.com/identity/token';
+const params = new URLSearchParams();
+params.append('grant_type', 'urn:ibm:params:oauth:grant-type:apikey');
+params.append('apikey', apiKey);
+
+
+const res = await fetch(iamUrl, {
+method: 'POST',
+headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+body: params.toString(),
+});
+const r = await res.json();
+if (!r.access_token) throw new Error('Failed to obtain IAM token');
+return r.access_token;
+}
+
+
+async function sendToAssistant({ message, sessionId }) {
+// Create session if not provided
+let sid = sessionId;
+if (!sid) {
+const session = await assistant.createSession({ assistantId: process.env.IBM_ASSISTANT_ID });
+sid = session.result.session_id;
+}
+const response = await assistant.message({ assistantId: process.env.IBM_ASSISTANT_ID, sessionId: sid, input: { 'message_type': 'text', 'text': message } });
+return { sessionId: sid, output: response.result.output };
+}
+
+
+module.exports = { generateText, sendToAssistant };
